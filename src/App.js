@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 
 const GRAD = "linear-gradient(135deg, #2ECC9A 0%, #4A90D9 30%, #7B6CF6 65%, #F472B6 85%, #E91E8C 100%)";
-const GRAD_SOFT = "rgba(123,108,246,0.08)";
+// const GRAD_SOFT = "rgba(123,108,246,0.08)";
 
 const initialExams = [
   { id:1, name:"보육교사 2급 자격시험", date:"2026-04-12", time:"10:00 ~ 13:00", place:"서울 강남구 시험센터", status:"soon" },
