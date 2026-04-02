@@ -123,7 +123,7 @@ function getExamPeriodForDay(year, month, day) {
   return null;
 }
 
-function Calendar() {
+function Calendar({ students = [] }) {
   const today = new Date();
   const [year, setYear] = useState(today.getFullYear());
   const [month, setMonth] = useState(today.getMonth());
@@ -245,18 +245,33 @@ function Calendar() {
           <div style={{ fontSize:12, fontWeight:700, color:"#7B6CF6", marginBottom:8 }}>
             {month+1}월 {selectedDay}일 일정
           </div>
-          {selectedExamPeriod && (
-            <div style={{ display:"flex", alignItems:"center", gap:8, marginBottom: selectedEvents.length>0?6:0 }}>
-              <span style={{
-                padding:"2px 8px", borderRadius:4, fontSize:10, fontWeight:800,
-                background: selectedExamPeriod.type==="mid"?"rgba(233,30,140,0.15)":"rgba(123,108,246,0.15)",
-                color: selectedExamPeriod.type==="mid"?"#E91E8C":"#7B6CF6",
-              }}>
-                {selectedExamPeriod.type==="mid"?"중간고사":"기말고사"}
-              </span>
-              <span style={{ fontSize:12, color:"#374151", fontWeight:600 }}>{selectedExamPeriod.label}</span>
-            </div>
-          )}
+          {selectedExamPeriod && (() => {
+            const epKeys = getExamKeysFromName(selectedExamPeriod.label);
+            const epStudents = students.filter(st => epKeys.includes(st.classKey));
+            return (
+              <div style={{ marginBottom: selectedEvents.length>0?6:0 }}>
+                <div style={{ display:"flex", alignItems:"center", gap:8 }}>
+                  <span style={{
+                    padding:"2px 8px", borderRadius:4, fontSize:10, fontWeight:800,
+                    background: selectedExamPeriod.type==="mid"?"rgba(233,30,140,0.15)":"rgba(123,108,246,0.15)",
+                    color: selectedExamPeriod.type==="mid"?"#E91E8C":"#7B6CF6",
+                  }}>
+                    {selectedExamPeriod.type==="mid"?"중간고사":"기말고사"}
+                  </span>
+                  <span style={{ fontSize:12, color:"#374151", fontWeight:600 }}>{selectedExamPeriod.label}</span>
+                </div>
+                {epStudents.length > 0 && (
+                  <div style={{ display:"flex", flexWrap:"wrap", gap:5, marginTop:6 }}>
+                    {epStudents.map((st, i) => (
+                      <span key={i} style={{ padding:"2px 8px", borderRadius:20, fontSize:11, fontWeight:600, background:"rgba(123,108,246,0.1)", color:"#7B6CF6" }}>
+                        {maskName(st.name)}
+                      </span>
+                    ))}
+                  </div>
+                )}
+              </div>
+            );
+          })()}
           {selectedEvents.map((e,i)=>(
             <div key={i} style={{ display:"flex", alignItems:"center", gap:8, marginTop:4 }}>
               <span style={{
@@ -565,7 +580,7 @@ export default function App() {
 
             {/* 캘린더 */}
             <Card icon="📅" title="학사일정 캘린더 (날짜 클릭 시 상세확인)">
-              <Calendar/>
+              <Calendar students={students}/>
             </Card>
 
             {/* 고사 목록 */}
@@ -589,7 +604,7 @@ export default function App() {
           <div style={{ display:"flex", flexDirection:"column", gap:16 }}>
             <div style={{ fontSize:16, fontWeight:700, padding:"4px 0" }}>📅 고사 일정</div>
             <Card icon="📅" title="캘린더">
-              <Calendar/>
+              <Calendar students={students}/>
             </Card>
             <Card>
               {exams.map(e=><ExamItem key={e.id} exam={e} students={students}/>)}
