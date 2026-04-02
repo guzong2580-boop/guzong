@@ -2,6 +2,28 @@ import { useState, useEffect } from "react";
 
 const GRAD = "linear-gradient(135deg, #2ECC9A 0%, #4A90D9 30%, #7B6CF6 65%, #F472B6 85%, #E91E8C 100%)";
 
+const CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vSt1oPUuI9YnK7bBMGF0zWoNpKJl6258e3x4R9yGOgJUj8KkINBX4UWX2u6jJLjVZj_VBr7w_9hMVHT/pub?output=csv";
+
+function maskName(name) {
+  if (!name) return '';
+  if (name.length <= 2) return name[0] + '*';
+  return name[0] + '*' + name.slice(2);
+}
+
+function dateToKey(dateStr) {
+  const parts = dateStr.trim().split('.');
+  if (parts.length < 3) return '';
+  const month = parseInt(parts[1]);
+  const day = parseInt(parts[2]);
+  return `${month}/${day}`;
+}
+
+function getExamKeysFromName(examName) {
+  const match = examName.match(/\[([^\]]+)개강\]/);
+  if (!match) return [];
+  return match[1].split('·');
+}
+
 // ── 고사 기간 데이터 (시작~종료) ──
 const examPeriods = [
   // 중간고사
@@ -272,21 +294,34 @@ const navBtnStyle = {
   borderRadius:8, cursor:"pointer", fontSize:16, color:"#6B7280",
 };
 
-function ExamItem({ exam }) {
+function ExamItem({ exam, students = [] }) {
   const d = new Date(exam.date);
   const s = statusStyle[exam.status];
+  const examKeys = getExamKeysFromName(exam.name);
+  const matched = students.filter(st => examKeys.includes(st.classKey));
   return (
-    <div style={{ display:"flex", alignItems:"center", gap:12, padding:"13px 0", borderBottom:"1px solid rgba(123,108,246,0.08)" }}>
-      <div style={{ minWidth:44, textAlign:"center", padding:"7px 6px", borderRadius:10, background:GRAD, color:"white", flexShrink:0 }}>
-        <div style={{ fontSize:9, opacity:0.85 }}>{MONTHS_EN[d.getMonth()]}</div>
-        <div style={{ fontSize:18, fontWeight:900, lineHeight:1 }}>{String(d.getDate()).padStart(2,"0")}</div>
+    <div style={{ padding:"13px 0", borderBottom:"1px solid rgba(123,108,246,0.08)" }}>
+      <div style={{ display:"flex", alignItems:"center", gap:12 }}>
+        <div style={{ minWidth:44, textAlign:"center", padding:"7px 6px", borderRadius:10, background:GRAD, color:"white", flexShrink:0 }}>
+          <div style={{ fontSize:9, opacity:0.85 }}>{MONTHS_EN[d.getMonth()]}</div>
+          <div style={{ fontSize:18, fontWeight:900, lineHeight:1 }}>{String(d.getDate()).padStart(2,"0")}</div>
+        </div>
+        <div style={{ flex:1, minWidth:0 }}>
+          <div style={{ fontSize:13, fontWeight:700, marginBottom:3, whiteSpace:"nowrap", overflow:"hidden", textOverflow:"ellipsis" }}>{exam.name}</div>
+          <div style={{ fontSize:11, color:"#6B7280" }}>📅 {exam.date} ~ {exam.endDate}</div>
+          <div style={{ fontSize:11, color:"#6B7280" }}>📍 {exam.place}</div>
+        </div>
+        <span style={{ padding:"3px 8px", borderRadius:20, fontSize:10, fontWeight:700, background:s.bg, color:s.color, flexShrink:0 }}>{s.label}</span>
       </div>
-      <div style={{ flex:1, minWidth:0 }}>
-        <div style={{ fontSize:13, fontWeight:700, marginBottom:3, whiteSpace:"nowrap", overflow:"hidden", textOverflow:"ellipsis" }}>{exam.name}</div>
-        <div style={{ fontSize:11, color:"#6B7280" }}>📅 {exam.date} ~ {exam.endDate}</div>
-        <div style={{ fontSize:11, color:"#6B7280" }}>📍 {exam.place}</div>
-      </div>
-      <span style={{ padding:"3px 8px", borderRadius:20, fontSize:10, fontWeight:700, background:s.bg, color:s.color, flexShrink:0 }}>{s.label}</span>
+      {matched.length > 0 && (
+        <div style={{ marginTop:8, display:"flex", flexWrap:"wrap", gap:6, paddingLeft:56 }}>
+          {matched.map((st, i) => (
+            <span key={i} style={{ padding:"2px 8px", borderRadius:20, fontSize:11, fontWeight:600, background:"rgba(123,108,246,0.1)", color:"#7B6CF6" }}>
+              {maskName(st.name)}
+            </span>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
@@ -398,7 +433,24 @@ export default function App() {
   const [page, setPage] = useState("home");
   const [exams, setExams] = useState(initialExams);
   const [notices, setNotices] = useState(initialNotices);
+  const [students, setStudents] = useState([]);
   const [isAdmin, setIsAdmin] = useState(false);
+
+  useEffect(() => {
+    fetch(CSV_URL)
+      .then(r => r.text())
+      .then(text => {
+        const lines = text.trim().split('\n');
+        const data = lines.slice(1)
+          .map(line => {
+            const cols = line.split(',');
+            return { name: cols[0]?.trim(), classKey: dateToKey(cols[1] || '') };
+          })
+          .filter(s => s.name && s.classKey);
+        setStudents(data);
+      })
+      .catch(console.error);
+  }, []);
   const [adminTab, setAdminTab] = useState("exams");
   const [loginOpen, setLoginOpen] = useState(false);
   const [examModalOpen, setExamModalOpen] = useState(false);
@@ -518,7 +570,7 @@ export default function App() {
 
             {/* 고사 목록 */}
             <Card icon="📝" title="고사 일정">
-              {exams.filter(e=>e.status!=="closed").slice(0,4).map(e=><ExamItem key={e.id} exam={e}/>)}
+              {exams.filter(e=>e.status!=="closed").slice(0,4).map(e=><ExamItem key={e.id} exam={e} students={students}/>)}
             </Card>
 
             {/* 공지 */}
@@ -540,7 +592,7 @@ export default function App() {
               <Calendar/>
             </Card>
             <Card>
-              {exams.map(e=><ExamItem key={e.id} exam={e}/>)}
+              {exams.map(e=><ExamItem key={e.id} exam={e} students={students}/>)}
             </Card>
           </div>
         )}
