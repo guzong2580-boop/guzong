@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 
 const GRAD = "linear-gradient(135deg, #2ECC9A 0%, #4A90D9 30%, #7B6CF6 65%, #F472B6 85%, #E91E8C 100%)";
 
-const CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vRteWQlYy35tFEHWfghTwI-6_psPEkw2CrOOddnpTt3FHLO3zVzW0yyLvO8FXSpVg/pub?output=csv";
+const CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vR9J7MYIQb0uWQ16FLOsHy8ttEEeG8HPTIAxrSnilJPHYQH7yjxnRpr1uL1S8nJqc1qQDGB_A3isvu-/pub?output=csv";
 
 function maskName(name) {
   if (!name) return '';

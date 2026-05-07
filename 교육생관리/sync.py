@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-교육생 목록.xlsx  →  교육생구글시트용.xlsx 자동 동기화
+교육생 목록.xlsx  →  교육생구글시트용.xlsx → Google Sheets 자동 동기화
 
 [규칙]
 1. 원본 '교육생 목록.xlsx'의 헤더 행에서 '이름'·'개강반'·'개강반2'·'개강반3' 컬럼을 찾는다
@@ -9,24 +9,17 @@
        개강반=2025.10.22 만 있는 경우       →  2025.10.22 사용
 3. 이름이 비어있는 행은 건너뛴다
 4. 결과를 '교육생구글시트용.xlsx'에 저장 (이름·개강반 2컬럼만)
-   기존 파일은 자동 백업 (.bak)
-
-[수동 예외 처리]
-- 자동 규칙이 맞지 않는 학생이 있으면, 원본 파일에서 그 학생의 개강반2/개강반3을 비우면 된다
-- 또는 이 스크립트 실행 후 결과 파일을 수동 수정 (단, 다음 실행 시 덮어쓰여짐)
+5. service-account.json 이 있으면 Google Sheets 에도 자동 push
 
 [사용법]
 $ python sync.py
-
-신규 교육생 추가 절차:
-1) '교육생 목록.xlsx'에 새 교육생 정보 입력 (이름·설명·개강반·비용·비고 등 모두)
-2) 이 스크립트 실행 → '교육생구글시트용.xlsx' 자동 갱신
-3) '교육생구글시트용.xlsx' 열어 전체 복사 → Google Sheets에 붙여넣기
-4) 약 5분 후 라이브 앱(https://guzong.vercel.app)에 자동 반영
 """
 import openpyxl
 import os, sys, shutil
 from datetime import datetime
+
+SHEET_ID = '1n28IPdaxcc4ty5C7E_DiPTVb5RTAzLQddyMlzYHeJ74'
+WORKSHEET_GID = 1230895908
 
 # 콘솔 한글 출력
 try:
@@ -125,13 +118,39 @@ def main():
         ws_dst.cell(row=i + 2, column=2, value=gan)
     wb_dst.save(DST)
 
-    print('✅ 동기화 완료')
+    print('✅ 로컬 동기화 완료')
     print()
-    print('다음 단계:')
-    print(f'  1) {os.path.basename(DST)} 열기')
-    print('  2) 전체 셀(A1~B마지막) 선택 → 복사')
-    print('  3) Google Sheets 열어 A1부터 붙여넣기')
-    print('  4) 약 5분 후 https://guzong.vercel.app 에 반영됨')
+
+    # ── Google Sheets 자동 push ─────────────
+    key_file = os.path.join(BASE, 'service-account.json')
+    if not os.path.exists(key_file):
+        print('ℹ️  service-account.json 없음 — Google Sheets push 건너뜀')
+        print('    수동: 구글시트용.xlsx 복사 → Sheets 붙여넣기')
+        return
+
+    print('Google Sheets 푸시 중...')
+    try:
+        import gspread
+        from google.oauth2.service_account import Credentials
+
+        scopes = ['https://www.googleapis.com/auth/spreadsheets']
+        creds = Credentials.from_service_account_file(key_file, scopes=scopes)
+        gc = gspread.authorize(creds)
+        sh = gc.open_by_key(SHEET_ID)
+        ws = sh.get_worksheet_by_id(WORKSHEET_GID)
+
+        values = [['이름', '개강반']] + [[name, gan] for name, gan in students]
+        ws.clear()
+        ws.update(values=values, range_name='A1')
+
+        print(f'✅ Google Sheets 푸시 완료 ({len(students)}명)')
+        print('   ~5분 후 https://guzong.vercel.app 에 반영됨')
+    except gspread.exceptions.APIError as e:
+        print(f'❌ Google Sheets API 오류: {e}')
+        print('   → 시트가 서비스 계정에 편집자 공유 됐는지 확인:')
+        print('   seoul-edu-sync@quantum-toolbox-488410-n4.iam.gserviceaccount.com')
+    except Exception as e:
+        print(f'❌ 푸시 실패: {type(e).__name__}: {e}')
 
 
 if __name__ == '__main__':
