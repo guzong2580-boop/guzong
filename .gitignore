@@ -17,7 +17,9 @@
 # 교육생 관리 — 상세 원본만 차단 (이름·개강반만 있는 파일은 허용)
 /교육생관리/*
 !/교육생관리/교육생구글시트용.xlsx
+!/교육생관리/sync.py
 ~$*.xlsx
+*.bak
 
 .env.local
 .env.development.local
