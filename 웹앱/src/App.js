@@ -607,7 +607,7 @@ export default function App() {
 
             {/* 고사 목록 */}
             <Card icon="📝" title="고사 일정">
-              {exams.filter(e=>e.status!=="closed").slice(0,4).map(e=><ExamItem key={e.id} exam={e} students={students}/>)}
+              {exams.filter(e=>autoStatus(e)!=="closed").slice(0,4).map(e=><ExamItem key={e.id} exam={e} students={students}/>)}
             </Card>
 
             {/* 공지 */}
@@ -629,7 +629,7 @@ export default function App() {
               <Calendar students={students}/>
             </Card>
             <Card>
-              {exams.map(e=><ExamItem key={e.id} exam={e} students={students}/>)}
+              {exams.filter(e=>autoStatus(e)!=="closed").map(e=><ExamItem key={e.id} exam={e} students={students}/>)}
             </Card>
           </div>
         )}
