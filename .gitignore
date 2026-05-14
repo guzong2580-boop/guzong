@@ -1,15 +1,11 @@
 # See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
 
-# dependencies
-/node_modules
-/.pnp
-.pnp.js
-
-# testing
-/coverage
-
-# production
-/build
+# React 앱 의존성·빌드 (웹앱/ 내부)
+/웹앱/node_modules
+/웹앱/.pnp
+/웹앱/.pnp.js
+/웹앱/coverage
+/웹앱/build
 
 # misc
 .DS_Store
