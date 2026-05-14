@@ -24,6 +24,18 @@ function getExamKeysFromName(examName) {
   return match[1].split('·');
 }
 
+// 고사 종료/임박/예정 자동 판정 (종료일 < 오늘 → closed, 시작 14일 내 → soon, 그 외 → upcoming)
+function autoStatus(exam) {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const start = new Date(exam.date);
+  const end = new Date(exam.endDate || exam.date);
+  if (end < today) return "closed";
+  const daysToStart = (start - today) / 86400000;
+  if (daysToStart <= 14) return "soon";
+  return "upcoming";
+}
+
 // ── 고사 기간 데이터 (시작~종료) ──
 const examPeriods = [
   // 중간고사
@@ -321,7 +333,7 @@ const navBtnStyle = {
 
 function ExamItem({ exam, students = [] }) {
   const d = new Date(exam.date);
-  const s = statusStyle[exam.status];
+  const s = statusStyle[autoStatus(exam)];
   const examKeys = getExamKeysFromName(exam.name);
   const matched = students.filter(st => examKeys.includes(st.classKey));
   return (
