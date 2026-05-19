@@ -473,21 +473,55 @@ export default function App() {
   const [students, setStudents] = useState([]);
   const [isAdmin, setIsAdmin] = useState(false);
 
+  const [studentHeaders, setStudentHeaders] = useState([]);
+  const [studentRows, setStudentRows] = useState([]);
+
   useEffect(() => {
     fetch(CSV_URL)
       .then(r => r.text())
       .then(text => {
-        const lines = text.trim().split('\n');
-        const data = lines.slice(1)
-          .map(line => {
-            const cols = line.split(',');
-            return { name: cols[0]?.trim(), classKey: dateToKey(cols[1] || '') };
-          })
+        // CSV 파서: 따옴표 안 쉼표 처리
+        const parseLine = (line) => {
+          const out = [];
+          let cur = '';
+          let inQ = false;
+          for (let i = 0; i < line.length; i++) {
+            const ch = line[i];
+            if (inQ) {
+              if (ch === '"' && line[i+1] === '"') { cur += '"'; i++; }
+              else if (ch === '"') { inQ = false; }
+              else { cur += ch; }
+            } else {
+              if (ch === ',') { out.push(cur); cur = ''; }
+              else if (ch === '"') { inQ = true; }
+              else { cur += ch; }
+            }
+          }
+          out.push(cur);
+          return out.map(c => c.trim());
+        };
+
+        const lines = text.replace(/\r/g, '').trim().split('\n');
+        if (lines.length === 0) return;
+        const headers = parseLine(lines[0]);
+        const rows = lines.slice(1).map(parseLine).filter(r => r[0]);
+
+        // 기존 마스킹 기능용 (이름 + classKey)
+        const data = rows
+          .map(cols => ({ name: cols[0], classKey: dateToKey(cols[1] || '') }))
           .filter(s => s.name && s.classKey);
         setStudents(data);
+
+        // 관리자 상세용 (전체 컬럼)
+        setStudentHeaders(headers);
+        setStudentRows(rows);
       })
       .catch(console.error);
   }, []);
+
+  // 교육생 상세 — 검색·그룹핑
+  const [studentSearch, setStudentSearch] = useState('');
+  const [studentGroup, setStudentGroup] = useState('all'); // 'all' | 개강반값
   const [adminTab, setAdminTab] = useState("exams");
   const [loginOpen, setLoginOpen] = useState(false);
   const [examModalOpen, setExamModalOpen] = useState(false);
@@ -648,9 +682,9 @@ export default function App() {
         {page==="admin" && isAdmin && (
           <div style={{ display:"flex", flexDirection:"column", gap:16 }}>
             <div style={{ fontSize:16, fontWeight:700, padding:"4px 0" }}>⚙️ 관리자 페이지</div>
-            <div style={{ display:"flex", gap:8 }}>
-              {[{k:"exams",l:"📅 시험 관리"},{k:"notices",l:"📢 공지 관리"}].map(t=>(
-                <button key={t.k} onClick={()=>setAdminTab(t.k)} style={{ flex:1, padding:"11px 0", border:adminTab===t.k?"none":"1.5px solid rgba(123,108,246,0.2)", background:adminTab===t.k?GRAD:"#fff", borderRadius:12, fontFamily:"inherit", fontSize:13, fontWeight:600, color:adminTab===t.k?"white":"#6B7280", cursor:"pointer" }}>
+            <div style={{ display:"flex", gap:8, flexWrap:"wrap" }}>
+              {[{k:"exams",l:"📅 시험 관리"},{k:"notices",l:"📢 공지 관리"},{k:"students",l:"👥 교육생 상세"}].map(t=>(
+                <button key={t.k} onClick={()=>setAdminTab(t.k)} style={{ flex:"1 1 30%", minWidth:0, padding:"11px 0", border:adminTab===t.k?"none":"1.5px solid rgba(123,108,246,0.2)", background:adminTab===t.k?GRAD:"#fff", borderRadius:12, fontFamily:"inherit", fontSize:13, fontWeight:600, color:adminTab===t.k?"white":"#6B7280", cursor:"pointer" }}>
                   {t.l}
                 </button>
               ))}
@@ -694,6 +728,145 @@ export default function App() {
                 ))}
               </div>
             )}
+
+            {adminTab==="students" && (() => {
+              // 컬럼 인덱스 찾기
+              const nameIdx = 0; // 항상 첫 컬럼
+              const gradeIdx = studentHeaders.findIndex(h => h === '개강반');
+              // 그룹 옵션: 개강반 unique
+              const groupOptions = Array.from(new Set(
+                studentRows.map(r => (gradeIdx >= 0 ? r[gradeIdx] : '')).filter(Boolean)
+              )).sort();
+
+              // 필터
+              const filtered = studentRows.filter(r => {
+                const matchSearch = !studentSearch.trim() || (r[nameIdx] || '').includes(studentSearch.trim());
+                const matchGroup = studentGroup === 'all' || (gradeIdx >= 0 && r[gradeIdx] === studentGroup);
+                return matchSearch && matchGroup;
+              });
+
+              // 개강반별 그룹핑
+              const byGroup = {};
+              filtered.forEach(r => {
+                const key = gradeIdx >= 0 ? (r[gradeIdx] || '미지정') : '전체';
+                if (!byGroup[key]) byGroup[key] = [];
+                byGroup[key].push(r);
+              });
+              const groupKeys = Object.keys(byGroup).sort();
+
+              return (
+                <div style={{ display:"flex", flexDirection:"column", gap:12 }}>
+                  {/* 통계 */}
+                  <div style={{ background:"#fff", borderRadius:12, padding:"14px 16px", border:"1px solid rgba(123,108,246,0.12)", display:"flex", justifyContent:"space-between", alignItems:"center" }}>
+                    <div>
+                      <div style={{ fontSize:11, color:"#6B7280", marginBottom:2 }}>전체 교육생</div>
+                      <div style={{ fontSize:22, fontWeight:900, background:GRAD, WebkitBackgroundClip:"text", WebkitTextFillColor:"transparent" }}>
+                        {studentRows.length}명
+                      </div>
+                    </div>
+                    <div style={{ fontSize:11, color:"#9CA3AF", textAlign:"right" }}>
+                      필터 결과<br/>
+                      <span style={{ fontSize:16, fontWeight:700, color:"#7B6CF6" }}>{filtered.length}명</span>
+                    </div>
+                  </div>
+
+                  {/* 검색 박스 */}
+                  <input
+                    type="text"
+                    value={studentSearch}
+                    onChange={e=>setStudentSearch(e.target.value)}
+                    placeholder="🔍 이름으로 검색"
+                    style={{
+                      width:"100%", padding:"12px 14px",
+                      border:"1.5px solid rgba(123,108,246,0.2)",
+                      borderRadius:12, fontFamily:"inherit", fontSize:14,
+                      background:"#fff", outline:"none", boxSizing:"border-box",
+                    }}
+                  />
+
+                  {/* 개강반 필터 */}
+                  <div style={{ display:"flex", gap:6, overflowX:"auto", paddingBottom:4 }}>
+                    <button
+                      onClick={()=>setStudentGroup('all')}
+                      style={{
+                        padding:"7px 13px", borderRadius:20, fontSize:12, fontWeight:600,
+                        border:studentGroup==='all'?"none":"1.5px solid rgba(123,108,246,0.2)",
+                        background:studentGroup==='all'?GRAD:"#fff",
+                        color:studentGroup==='all'?"white":"#6B7280",
+                        cursor:"pointer", whiteSpace:"nowrap", flexShrink:0,
+                      }}
+                    >전체</button>
+                    {groupOptions.map(g => (
+                      <button
+                        key={g}
+                        onClick={()=>setStudentGroup(g)}
+                        style={{
+                          padding:"7px 13px", borderRadius:20, fontSize:12, fontWeight:600,
+                          border:studentGroup===g?"none":"1.5px solid rgba(123,108,246,0.2)",
+                          background:studentGroup===g?GRAD:"#fff",
+                          color:studentGroup===g?"white":"#6B7280",
+                          cursor:"pointer", whiteSpace:"nowrap", flexShrink:0,
+                        }}
+                      >{g}</button>
+                    ))}
+                  </div>
+
+                  {/* 개강반별 카드 그룹 */}
+                  {studentHeaders.length === 0 && (
+                    <div style={{ textAlign:"center", padding:"40px 20px", color:"#9CA3AF", fontSize:13 }}>
+                      교육생 데이터 로딩 중...
+                    </div>
+                  )}
+
+                  {groupKeys.map(gk => (
+                    <div key={gk} style={{ display:"flex", flexDirection:"column", gap:8 }}>
+                      <div style={{ display:"flex", alignItems:"center", gap:8, marginTop:4 }}>
+                        <div style={{
+                          padding:"4px 12px", borderRadius:20, fontSize:12, fontWeight:700,
+                          background:"rgba(123,108,246,0.12)", color:"#7B6CF6",
+                        }}>📅 {gk}</div>
+                        <span style={{ fontSize:11, color:"#9CA3AF" }}>{byGroup[gk].length}명</span>
+                      </div>
+                      {byGroup[gk].map((row, ri) => (
+                        <div key={ri} style={{
+                          background:"#fff", borderRadius:14, padding:"14px 16px",
+                          border:"1px solid rgba(123,108,246,0.12)",
+                          boxShadow:"0 1px 4px rgba(123,108,246,0.04)",
+                        }}>
+                          <div style={{ fontSize:15, fontWeight:700, marginBottom:8, color:"#1A1A2E" }}>
+                            👤 {row[nameIdx]}
+                          </div>
+                          <div style={{ display:"grid", gridTemplateColumns:isMobile?"1fr":"repeat(2, 1fr)", gap:"6px 14px" }}>
+                            {studentHeaders.map((h, ci) => {
+                              if (ci === nameIdx) return null;
+                              const val = row[ci];
+                              if (!val) return null;
+                              return (
+                                <div key={ci} style={{ display:"flex", gap:8, alignItems:"baseline", fontSize:12, lineHeight:1.5 }}>
+                                  <span style={{ color:"#9CA3AF", fontWeight:600, minWidth:60, flexShrink:0 }}>{h}</span>
+                                  <span style={{ color:"#374151", fontWeight:500, wordBreak:"break-all" }}>{val}</span>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ))}
+
+                  {filtered.length === 0 && studentHeaders.length > 0 && (
+                    <div style={{ textAlign:"center", padding:"30px 20px", color:"#9CA3AF", fontSize:13 }}>
+                      검색 결과가 없습니다.
+                    </div>
+                  )}
+
+                  <div style={{ fontSize:10, color:"#9CA3AF", textAlign:"center", marginTop:6, lineHeight:1.6 }}>
+                    데이터 출처: Google Sheets (sync.py로 동기화)<br/>
+                    개인정보 보호 — 관리자만 열람 가능
+                  </div>
+                </div>
+              );
+            })()}
           </div>
         )}
 
