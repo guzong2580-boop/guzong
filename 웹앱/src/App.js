@@ -76,14 +76,6 @@ const scheduleEvents = [
   { date:"2026-05-16", label:"[5/13개강] 사회복지현장실습 오리엔테이션", type:"practice" },
   { date:"2026-07-04", label:"[5/13개강] 사회복지현장실습 중간평가회", type:"practice" },
   { date:"2026-08-22", label:"[5/13개강] 사회복지현장실습 최종평가회", type:"practice" },
-  // 대면교과목 출석수업 (3/11개강)
-  { date:"2026-05-09", label:"[3/11개강] 아동관찰및행동연구", type:"class" },
-  { date:"2026-05-10", label:"[3/11개강] 아동동작", type:"class" },
-  { date:"2026-05-30", label:"[3/11개강] 아동권리와복지", type:"class" },
-  { date:"2026-05-31", label:"[3/11개강] 언어지도", type:"class" },
-  { date:"2026-06-07", label:"[3/11개강] 놀이지도", type:"class" },
-  { date:"2026-06-13", label:"[3/11개강] 아동수학지도", type:"class" },
-  { date:"2026-06-14", label:"[3/11개강] 아동생활지도", type:"class" },
 ];
 
 const initialExams = [
@@ -311,7 +303,6 @@ function Calendar({ students = [] }) {
               eval:     { bg:"rgba(123,108,246,0.12)", color:"#7B6CF6", label:"평가" },
               task:     { bg:"rgba(46,204,154,0.12)",  color:"#2ECC9A", label:"과제" },
               practice: { bg:"rgba(244,114,182,0.15)", color:"#E91E8C", label:"실습" },
-              class:    { bg:"rgba(245,158,11,0.15)",  color:"#D97706", label:"수업" },
             }[e.type] || { bg:"rgba(107,114,128,0.1)", color:"#6B7280", label:"기타" };
             return (
               <div key={i} style={{ display:"flex", alignItems:"center", gap:8, marginTop:4 }}>
@@ -333,7 +324,7 @@ function Calendar({ students = [] }) {
         {[
           { color:"rgba(233,30,140,0.3)", label:"중간고사" },
           { color:"rgba(123,108,246,0.3)", label:"기말고사" },
-          { color:"#2ECC9A", label:"과제/평가/실습/수업" },
+          { color:"#2ECC9A", label:"과제/평가/실습" },
         ].map(l=>(
           <div key={l.label} style={{ display:"flex", alignItems:"center", gap:5 }}>
             <div style={{ width:12, height:12, borderRadius:3, background:l.color }}/>
