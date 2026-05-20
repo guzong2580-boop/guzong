@@ -547,7 +547,7 @@ export default function App() {
   }
 
   function doLogin() {
-    if (loginId==="admin"&&loginPw==="1234") { setIsAdmin(true); setLoginOpen(false); setPage("admin"); }
+    if (loginId==="guzong"&&loginPw==="sotlawkd1") { setIsAdmin(true); setLoginOpen(false); setPage("admin"); }
     else setLoginErr(true);
   }
 
@@ -881,7 +881,7 @@ export default function App() {
 
       {/* 로그인 */}
       <Modal open={loginOpen} onClose={()=>setLoginOpen(false)} title="🔐 관리자 로그인">
-        <FormInput label="아이디" type="text" value={loginId} onChange={e=>setLoginId(e.target.value)} placeholder="admin"/>
+        <FormInput label="아이디" type="text" value={loginId} onChange={e=>setLoginId(e.target.value)} placeholder="아이디"/>
         <FormInput label="비밀번호" type="password" value={loginPw} onChange={e=>setLoginPw(e.target.value)} placeholder="••••••" onKeyDown={e=>e.key==="Enter"&&doLogin()}/>
         {loginErr && <div style={{ color:"#E91E8C", fontSize:12, marginBottom:12 }}>아이디 또는 비밀번호가 올바르지 않습니다.</div>}
         <div style={{ display:"flex", gap:10, marginTop:8 }}>
