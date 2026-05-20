@@ -57,10 +57,11 @@ const examPeriods = [
 ];
 
 // ── 실습 일정 (오리엔테이션·세미나·평가회) ──
+// attendees: 실습 대상자 명단 직접 지정 (개강반 매칭으로는 안 됨)
 const practicePeriods = [
-  { start:"2026-05-16", end:"2026-05-16", label:"[5/13개강] 사회복지현장실습 오리엔테이션", type:"practice" },
-  { start:"2026-07-04", end:"2026-07-04", label:"[5/13개강] 사회복지현장실습 중간평가회", type:"practice" },
-  { start:"2026-08-22", end:"2026-08-22", label:"[5/13개강] 사회복지현장실습 최종평가회", type:"practice" },
+  { start:"2026-05-16", end:"2026-05-16", label:"사회복지현장실습 오리엔테이션", type:"practice", attendees:["조소연"] },
+  { start:"2026-07-04", end:"2026-07-04", label:"사회복지현장실습 중간평가회", type:"practice", attendees:["조소연"] },
+  { start:"2026-08-22", end:"2026-08-22", label:"사회복지현장실습 최종평가회", type:"practice", attendees:["조소연"] },
 ];
 
 const initialExams = [
@@ -264,9 +265,10 @@ function Calendar({ students = [] }) {
             {month+1}월 {selectedDay}일 일정
           </div>
           {[selectedExamPeriod, selectedPracticePeriod].filter(Boolean).map((p, pi) => {
-            const keys = getExamKeysFromName(p.label);
-            const matched = students.filter(st => st.classKeys.some(k => keys.includes(k)));
             const isMidT = p.type==="mid", isFinalT = p.type==="final", isPracT = p.type==="practice";
+            const matched = isPracT
+              ? (p.attendees || []).map(name => ({ name }))
+              : students.filter(st => st.classKeys.some(k => getExamKeysFromName(p.label).includes(k)));
             const badge = isMidT
               ? { bg:"rgba(233,30,140,0.15)", color:"#E91E8C", label:"중간고사" }
               : isFinalT
