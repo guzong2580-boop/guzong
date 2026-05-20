@@ -224,6 +224,15 @@ def main():
 
         print(f'OK Google Sheets 푸시 완료 ({len(students)}명, {len(final_headers)}컬럼)')
         print('   ~5분 후 https://guzong.vercel.app 에 반영됨')
+        print()
+        print('=' * 60)
+        print('[수동 작업] claude.ai 프로젝트 재업로드 필요')
+        print('=' * 60)
+        print('1. https://claude.ai → Projects → "서울원격평생교육원"')
+        print('2. 기존 "교육생 목록.xlsx" 삭제')
+        print('3. 새 xlsx 업로드:')
+        print(f'   {SRC}')
+        print('→ 폰 Claude 앱에서 최신 학생 정보 조회 가능')
     except gspread.exceptions.APIError as e:
         print(f'X Google Sheets API 오류: {e}')
         print('   -> 시트가 서비스 계정에 편집자 공유 됐는지 확인:')

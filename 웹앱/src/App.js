@@ -269,7 +269,7 @@ function Calendar({ students = [] }) {
           </div>
           {selectedExamPeriod && (() => {
             const epKeys = getExamKeysFromName(selectedExamPeriod.label);
-            const epStudents = students.filter(st => epKeys.includes(st.classKey));
+            const epStudents = students.filter(st => st.classKeys.some(k => epKeys.includes(k)));
             return (
               <div style={{ marginBottom: selectedEvents.length>0?6:0 }}>
                 <div style={{ display:"flex", alignItems:"center", gap:8 }}>
@@ -335,7 +335,7 @@ function ExamItem({ exam, students = [] }) {
   const d = new Date(exam.date);
   const s = statusStyle[autoStatus(exam)];
   const examKeys = getExamKeysFromName(exam.name);
-  const matched = students.filter(st => examKeys.includes(st.classKey));
+  const matched = students.filter(st => st.classKeys.some(k => examKeys.includes(k)));
   return (
     <div style={{ padding:"13px 0", borderBottom:"1px solid rgba(123,108,246,0.08)" }}>
       <div style={{ display:"flex", alignItems:"center", gap:12 }}>
@@ -506,9 +506,18 @@ export default function App() {
         const headers = parseLine(lines[0]);
         const rows = lines.slice(1).map(parseLine).filter(r => r[0]);
 
+        // 개강반차수1/2/3 (또는 cols[1] 단일 개강반) 전부 매칭 키로 사용
+        const ganIdxs = headers
+          .map((h, i) => (h === '개강반' || h.startsWith('개강반차수')) ? i : -1)
+          .filter(i => i >= 0);
         const data = rows
-          .map(cols => ({ name: cols[0], classKey: dateToKey(cols[1] || '') }))
-          .filter(s => s.name && s.classKey);
+          .map(cols => ({
+            name: cols[0],
+            classKeys: ganIdxs
+              .map(i => dateToKey(cols[i] || ''))
+              .filter(Boolean),
+          }))
+          .filter(s => s.name && s.classKeys.length > 0);
         setStudents(data);
 
         setStudentHeaders(headers);
