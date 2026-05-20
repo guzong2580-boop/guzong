@@ -56,26 +56,11 @@ const examPeriods = [
   { start:"2026-08-28", end:"2026-09-01", label:"[5/20개강] 기말고사", type:"final" },
 ];
 
-// ── 기타 일정 ──
-const scheduleEvents = [
-  { date:"2026-01-21", label:"[11/26개강] 과제물 제출기간 시작", type:"task" },
-  { date:"2026-02-06", label:"[1/14개강] 1차 학습평가", type:"eval" },
-  { date:"2026-02-13", label:"[11/26개강] 2차 학습평가", type:"eval" },
-  { date:"2026-02-27", label:"[12/10개강] 2차 학습평가", type:"eval" },
-  { date:"2026-03-06", label:"[2/11개강] 1차 학습평가", type:"eval" },
-  { date:"2026-03-11", label:"[1/14개강] 과제물 제출기간 시작", type:"task" },
-  { date:"2026-04-03", label:"[3/11개강] 1차 학습평가", type:"eval" },
-  { date:"2026-04-08", label:"[2/11개강] 과제물 제출기간 시작", type:"task" },
-  { date:"2026-05-01", label:"[2/11개강] 2차 학습평가", type:"eval" },
-  { date:"2026-05-06", label:"[3/11개강] 과제물 제출기간 시작", type:"task" },
-  { date:"2026-05-08", label:"[4/15개강] 1차 학습평가", type:"eval" },
-  { date:"2026-05-29", label:"[3/11개강] 2차 학습평가", type:"eval" },
-  { date:"2026-06-10", label:"[4/15개강] 과제물 제출기간 시작", type:"task" },
-  { date:"2026-07-03", label:"[4/15개강] 2차 학습평가", type:"eval" },
-  // 사회복지현장실습 (5/13개강)
-  { date:"2026-05-16", label:"[5/13개강] 사회복지현장실습 오리엔테이션", type:"practice" },
-  { date:"2026-07-04", label:"[5/13개강] 사회복지현장실습 중간평가회", type:"practice" },
-  { date:"2026-08-22", label:"[5/13개강] 사회복지현장실습 최종평가회", type:"practice" },
+// ── 실습 일정 (오리엔테이션·세미나·평가회) ──
+const practicePeriods = [
+  { start:"2026-05-16", end:"2026-05-16", label:"[5/13개강] 사회복지현장실습 오리엔테이션", type:"practice" },
+  { start:"2026-07-04", end:"2026-07-04", label:"[5/13개강] 사회복지현장실습 중간평가회", type:"practice" },
+  { start:"2026-08-22", end:"2026-08-22", label:"[5/13개강] 사회복지현장실습 최종평가회", type:"practice" },
 ];
 
 const initialExams = [
@@ -149,6 +134,16 @@ function getExamPeriodForDay(year, month, day) {
   return null;
 }
 
+function getPracticePeriodForDay(year, month, day) {
+  const target = new Date(year, month, day);
+  for (const ep of practicePeriods) {
+    const s = toDate(ep.start);
+    const e = toDate(ep.end);
+    if (target >= s && target <= e) return ep;
+  }
+  return null;
+}
+
 function Calendar({ students = [] }) {
   const today = new Date();
   const [year, setYear] = useState(today.getFullYear());
@@ -167,10 +162,7 @@ function Calendar({ students = [] }) {
 
   // 선택된 날짜 일정
   const selectedExamPeriod = selectedDay ? getExamPeriodForDay(year, month, selectedDay) : null;
-  const selectedEvents = selectedDay ? scheduleEvents.filter(e => {
-    const d = new Date(e.date);
-    return d.getFullYear()===year && d.getMonth()===month && d.getDate()===selectedDay;
-  }) : [];
+  const selectedPracticePeriod = selectedDay ? getPracticePeriodForDay(year, month, selectedDay) : null;
 
   function prev() { if(month===0){setMonth(11);setYear(y=>y-1)}else setMonth(m=>m-1); setSelectedDay(null); }
   function next() { if(month===11){setMonth(0);setYear(y=>y+1)}else setMonth(m=>m+1); setSelectedDay(null); }
@@ -201,18 +193,15 @@ function Calendar({ students = [] }) {
           const isToday = c.type==="cur" && today.getFullYear()===year && today.getMonth()===month && today.getDate()===c.day;
           const isSelected = c.type==="cur" && selectedDay===c.day;
           const ep = c.type==="cur" ? getExamPeriodForDay(year, month, c.day) : null;
+          const pp = c.type==="cur" && !ep ? getPracticePeriodForDay(year, month, c.day) : null;
           const isMid = ep?.type === "mid";
           const isFinal = ep?.type === "final";
+          const isPractice = pp?.type === "practice";
 
           // 기간 내 첫날/마지막날 체크 (둥근 모서리용)
-          const isStart = ep && toDate(ep.start).getDate()===c.day && toDate(ep.start).getMonth()===month && toDate(ep.start).getFullYear()===year;
-          const isEnd = ep && toDate(ep.end).getDate()===c.day && toDate(ep.end).getMonth()===month && toDate(ep.end).getFullYear()===year;
-
-          // 기타 이벤트 (점)
-          const hasOtherEvent = scheduleEvents.some(e => {
-            const d = new Date(e.date);
-            return d.getFullYear()===year && d.getMonth()===month && d.getDate()===c.day;
-          });
+          const period = ep || pp;
+          const isStart = period && toDate(period.start).getDate()===c.day && toDate(period.start).getMonth()===month && toDate(period.start).getFullYear()===year;
+          const isEnd = period && toDate(period.end).getDate()===c.day && toDate(period.end).getMonth()===month && toDate(period.end).getFullYear()===year;
 
           let bg = "transparent";
           let color = c.type!=="cur" ? "#D1D5DB" : dow===0 ? "#EF4444" : dow===6 ? "#4A90D9" : "#1A1A2E";
@@ -235,6 +224,13 @@ function Calendar({ students = [] }) {
             if (isStart) borderRadius = "8px 0 0 8px";
             else if (isEnd) borderRadius = "0 8px 8px 0";
             else borderRadius = "0";
+          } else if (isPractice) {
+            bg = "rgba(14,116,144,0.15)";
+            color = "#0E7490";
+            fontWeight = 600;
+            if (isStart) borderRadius = "8px 0 0 8px";
+            else if (isEnd) borderRadius = "0 8px 8px 0";
+            else borderRadius = "0";
           }
 
           return (
@@ -247,18 +243,14 @@ function Calendar({ students = [] }) {
                 outlineOffset: "-1px",
               }}>
               {c.day}
-              {/* 중간/기말 라벨 - 시작일에만 */}
+              {/* 중간/기말/실습 라벨 - 시작일에만 */}
               {isStart && !isToday && (
                 <div style={{
                   position:"absolute", top:1, right:2, fontSize:7, fontWeight:800,
-                  color: isMid ? "#E91E8C" : "#7B6CF6", lineHeight:1,
+                  color: isMid ? "#E91E8C" : isFinal ? "#7B6CF6" : "#0E7490", lineHeight:1,
                 }}>
-                  {isMid ? "중" : "기"}
+                  {isMid ? "중" : isFinal ? "기" : "실"}
                 </div>
-              )}
-              {/* 기타 이벤트 점 */}
-              {hasOtherEvent && !ep && (
-                <div style={{ width:3, height:3, borderRadius:"50%", background:"#2ECC9A", position:"absolute", bottom:2 }}/>
               )}
             </div>
           );
@@ -266,53 +258,40 @@ function Calendar({ students = [] }) {
       </div>
 
       {/* 선택된 날 이벤트 */}
-      {selectedDay && (selectedExamPeriod || selectedEvents.length > 0) && (
+      {selectedDay && (selectedExamPeriod || selectedPracticePeriod) && (
         <div style={{ marginTop:12, padding:"12px 14px", background:"rgba(123,108,246,0.06)", borderRadius:12, border:"1px solid rgba(123,108,246,0.15)" }}>
           <div style={{ fontSize:12, fontWeight:700, color:"#7B6CF6", marginBottom:8 }}>
             {month+1}월 {selectedDay}일 일정
           </div>
-          {selectedExamPeriod && (() => {
-            const epKeys = getExamKeysFromName(selectedExamPeriod.label);
-            const epStudents = students.filter(st => st.classKeys.some(k => epKeys.includes(k)));
+          {[selectedExamPeriod, selectedPracticePeriod].filter(Boolean).map((p, pi) => {
+            const keys = getExamKeysFromName(p.label);
+            const matched = students.filter(st => st.classKeys.some(k => keys.includes(k)));
+            const isMidT = p.type==="mid", isFinalT = p.type==="final", isPracT = p.type==="practice";
+            const badge = isMidT
+              ? { bg:"rgba(233,30,140,0.15)", color:"#E91E8C", label:"중간고사" }
+              : isFinalT
+                ? { bg:"rgba(123,108,246,0.15)", color:"#7B6CF6", label:"기말고사" }
+                : { bg:"rgba(14,116,144,0.15)", color:"#0E7490", label:"실습" };
+            const chip = isPracT
+              ? { bg:"rgba(14,116,144,0.1)", color:"#0E7490" }
+              : { bg:"rgba(123,108,246,0.1)", color:"#7B6CF6" };
             return (
-              <div style={{ marginBottom: selectedEvents.length>0?6:0 }}>
+              <div key={pi} style={{ marginBottom: pi===0 ? 8 : 0 }}>
                 <div style={{ display:"flex", alignItems:"center", gap:8 }}>
-                  <span style={{
-                    padding:"2px 8px", borderRadius:4, fontSize:10, fontWeight:800,
-                    background: selectedExamPeriod.type==="mid"?"rgba(233,30,140,0.15)":"rgba(123,108,246,0.15)",
-                    color: selectedExamPeriod.type==="mid"?"#E91E8C":"#7B6CF6",
-                  }}>
-                    {selectedExamPeriod.type==="mid"?"중간고사":"기말고사"}
+                  <span style={{ padding:"2px 8px", borderRadius:4, fontSize:10, fontWeight:800, background:badge.bg, color:badge.color }}>
+                    {badge.label}
                   </span>
-                  <span style={{ fontSize:12, color:"#374151", fontWeight:600 }}>{selectedExamPeriod.label}</span>
+                  <span style={{ fontSize:12, color:"#374151", fontWeight:600 }}>{p.label}</span>
                 </div>
-                {epStudents.length > 0 && (
+                {matched.length > 0 && (
                   <div style={{ display:"flex", flexWrap:"wrap", gap:5, marginTop:6 }}>
-                    {epStudents.map((st, i) => (
-                      <span key={i} style={{ padding:"2px 8px", borderRadius:20, fontSize:11, fontWeight:600, background:"rgba(123,108,246,0.1)", color:"#7B6CF6" }}>
+                    {matched.map((st, i) => (
+                      <span key={i} style={{ padding:"2px 8px", borderRadius:20, fontSize:11, fontWeight:600, background:chip.bg, color:chip.color }}>
                         {maskName(st.name)}
                       </span>
                     ))}
                   </div>
                 )}
-              </div>
-            );
-          })()}
-          {selectedEvents.map((e,i)=>{
-            const evStyle = {
-              eval:     { bg:"rgba(123,108,246,0.12)", color:"#7B6CF6", label:"평가" },
-              task:     { bg:"rgba(46,204,154,0.12)",  color:"#2ECC9A", label:"과제" },
-              practice: { bg:"rgba(244,114,182,0.15)", color:"#E91E8C", label:"실습" },
-            }[e.type] || { bg:"rgba(107,114,128,0.1)", color:"#6B7280", label:"기타" };
-            return (
-              <div key={i} style={{ display:"flex", alignItems:"center", gap:8, marginTop:4 }}>
-                <span style={{
-                  padding:"2px 7px", borderRadius:4, fontSize:10, fontWeight:700,
-                  background:evStyle.bg, color:evStyle.color,
-                }}>
-                  {evStyle.label}
-                </span>
-                <span style={{ fontSize:12, color:"#374151" }}>{e.label}</span>
               </div>
             );
           })}
@@ -324,7 +303,7 @@ function Calendar({ students = [] }) {
         {[
           { color:"rgba(233,30,140,0.3)", label:"중간고사" },
           { color:"rgba(123,108,246,0.3)", label:"기말고사" },
-          { color:"#2ECC9A", label:"과제/평가/실습" },
+          { color:"rgba(14,116,144,0.3)", label:"실습" },
         ].map(l=>(
           <div key={l.label} style={{ display:"flex", alignItems:"center", gap:5 }}>
             <div style={{ width:12, height:12, borderRadius:3, background:l.color }}/>
