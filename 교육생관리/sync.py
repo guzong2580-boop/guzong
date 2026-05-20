@@ -23,6 +23,9 @@ from datetime import datetime
 SHEET_ID = '1n28IPdaxcc4ty5C7E_DiPTVb5RTAzLQddyMlzYHeJ74'
 WORKSHEET_GID = 1230895908
 
+# 개인정보 보호 — 공개 CSV에 올리지 않을 컬럼
+SENSITIVE_COLS = {'설명', '실습', '비용'}
+
 # 콘솔 한글 출력
 try:
     sys.stdout.reconfigure(encoding='utf-8')
@@ -39,11 +42,14 @@ def find_header(ws, max_search_rows=10, max_cols=20):
     for r in range(1, max_search_rows + 1):
         row = [ws.cell(row=r, column=c).value for c in range(1, max_cols + 1)]
         if '이름' in row and '개강반' in row:
-            # 헤더 셀들 (None 제거하지 않고 위치 유지)
+            # 헤더 셀들 (None 제거하지 않고 위치 유지, 민감 컬럼 제외)
             header_cells = []
             for i, v in enumerate(row):
                 if v is not None and str(v).strip():
-                    header_cells.append((i + 1, str(v).strip()))
+                    name = str(v).strip()
+                    if name in SENSITIVE_COLS:
+                        continue
+                    header_cells.append((i + 1, name))
             # 이름·개강반 컬럼 인덱스
             name_col = next(c for c, v in header_cells if v == '이름')
             gan_cols = [c for c, v in header_cells if v.startswith('개강반')]

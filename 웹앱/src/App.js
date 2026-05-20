@@ -506,13 +506,11 @@ export default function App() {
         const headers = parseLine(lines[0]);
         const rows = lines.slice(1).map(parseLine).filter(r => r[0]);
 
-        // 기존 마스킹 기능용 (이름 + classKey)
         const data = rows
           .map(cols => ({ name: cols[0], classKey: dateToKey(cols[1] || '') }))
           .filter(s => s.name && s.classKey);
         setStudents(data);
 
-        // 관리자 상세용 (전체 컬럼)
         setStudentHeaders(headers);
         setStudentRows(rows);
       })
