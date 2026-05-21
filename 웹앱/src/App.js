@@ -59,14 +59,14 @@ const examPeriods = [
 // ── 실습 일정 (오리엔테이션·세미나·평가회) ──
 // attendees: 실습 대상자 명단 직접 지정 (개강반 매칭으로는 안 됨)
 const practicePeriods = [
-  // [3/11개강] 사회복지현장실습 출석수업 (대상: 박희연 4분반, 조소연 2분반)
-  { start:"2026-03-14", end:"2026-03-15", label:"사회복지현장실습 오리엔테이션", type:"practice", attendees:["박희연","조소연"] },
-  { start:"2026-04-25", end:"2026-04-26", label:"사회복지현장실습 중간평가회", type:"practice", attendees:["박희연","조소연"] },
-  { start:"2026-06-20", end:"2026-06-21", label:"사회복지현장실습 최종평가회", type:"practice", attendees:["박희연","조소연"] },
-  // [5/13개강] 사회복지현장실습 출석수업 (대상: 이소희 1분반 외)
-  { start:"2026-05-16", end:"2026-05-16", label:"사회복지현장실습 오리엔테이션", type:"practice", attendees:["이소희"] },
-  { start:"2026-07-04", end:"2026-07-04", label:"사회복지현장실습 중간평가회", type:"practice", attendees:["이소희"] },
-  { start:"2026-08-22", end:"2026-08-22", label:"사회복지현장실습 최종평가회", type:"practice", attendees:["이소희"] },
+  // [3/11개강 실습 cohort] 출석수업 (대상: 박희연 4분반)
+  { start:"2026-03-14", end:"2026-03-15", label:"사회복지현장실습 오리엔테이션", type:"practice", attendees:["박희연"] },
+  { start:"2026-04-25", end:"2026-04-26", label:"사회복지현장실습 중간평가회", type:"practice", attendees:["박희연"] },
+  { start:"2026-06-20", end:"2026-06-21", label:"사회복지현장실습 최종평가회", type:"practice", attendees:["박희연"] },
+  // [5/13개강 실습 cohort] 출석수업 (대상: 조소연 2분반)
+  { start:"2026-05-16", end:"2026-05-16", label:"사회복지현장실습 오리엔테이션", type:"practice", attendees:["조소연"] },
+  { start:"2026-07-04", end:"2026-07-04", label:"사회복지현장실습 중간평가회", type:"practice", attendees:["조소연"] },
+  { start:"2026-08-22", end:"2026-08-22", label:"사회복지현장실습 최종평가회", type:"practice", attendees:["조소연"] },
 ];
 
 const initialExams = [
