@@ -58,6 +58,8 @@ const examPeriods = [
   { start:"2026-09-18", end:"2026-09-22", label:"[6/10개강] 기말고사", type:"final" },
   { start:"2026-09-04", end:"2026-09-08", label:"[7/15개강] 중간고사", type:"mid" },
   { start:"2026-10-23", end:"2026-10-27", label:"[7/15개강] 기말고사", type:"final" },
+  { start:"2026-10-02", end:"2026-10-06", label:"[8/12개강] 중간고사", type:"mid" },
+  { start:"2026-11-20", end:"2026-11-24", label:"[8/12개강] 기말고사", type:"final" },
 ];
 
 // ── 실습 일정 (오리엔테이션·세미나·평가회) ──
@@ -103,6 +105,8 @@ const initialExams = [
   { id:902, name:"[6/10개강] 기말고사", date:"2026-09-18", endDate:"2026-09-22", time:"17:00 ~ 17:00", place:"온라인", status:"upcoming" },
   { id:1001, name:"[7/15개강] 중간고사", date:"2026-09-04", endDate:"2026-09-08", time:"17:00 ~ 17:00", place:"온라인", status:"upcoming" },
   { id:1002, name:"[7/15개강] 기말고사", date:"2026-10-23", endDate:"2026-10-27", time:"17:00 ~ 17:00", place:"온라인", status:"upcoming" },
+  { id:1101, name:"[8/12개강] 중간고사", date:"2026-10-02", endDate:"2026-10-06", time:"17:00 ~ 17:00", place:"온라인", status:"upcoming" },
+  { id:1102, name:"[8/12개강] 기말고사", date:"2026-11-20", endDate:"2026-11-24", time:"17:00 ~ 17:00", place:"온라인", status:"upcoming" },
 ];
 
 const initialNotices = [
