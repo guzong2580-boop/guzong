@@ -75,6 +75,11 @@ const practicePeriods = [
   { start:"2026-07-18", end:"2026-07-18", label:"사회복지현장실습 오리엔테이션", type:"practice", attendees:["이소희"] },
   { start:"2026-09-05", end:"2026-09-05", label:"사회복지현장실습 중간평가회", type:"practice", attendees:["이소희"] },
   { start:"2026-10-24", end:"2026-10-24", label:"사회복지현장실습 최종평가회", type:"practice", attendees:["이소희"] },
+  // [2027 1-5/3-17개강 실습 cohort] 17분반 (대상: 안희진·홍미정·홍순정·이종석)
+  // 출석수업(OT/중간/최종) 날짜 교육원 미발표 → 일정 미정. 확정 시 start/end 채우면 캘린더 자동 표시됨.
+  { start:"", end:"", label:"사회복지현장실습 오리엔테이션 (2027-03-17개강 / 일정 미정)", type:"practice", attendees:["안희진","홍미정","홍순정","이종석"] },
+  { start:"", end:"", label:"사회복지현장실습 중간평가회 (2027-03-17개강 / 일정 미정)", type:"practice", attendees:["안희진","홍미정","홍순정","이종석"] },
+  { start:"", end:"", label:"사회복지현장실습 최종평가회 (2027-03-17개강 / 일정 미정)", type:"practice", attendees:["안희진","홍미정","홍순정","이종석"] },
 ];
 
 const initialExams = [
