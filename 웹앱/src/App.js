@@ -494,6 +494,7 @@ export default function App() {
   const [exams, setExams] = useState(initialExams);
   const [notices, setNotices] = useState(initialNotices);
   const [students, setStudents] = useState([]);
+  const [examSearch, setExamSearch] = useState("");
   const [isAdmin, setIsAdmin] = useState(false);
 
   const [studentHeaders, setStudentHeaders] = useState([]);
@@ -689,6 +690,30 @@ export default function App() {
         {page==="exam" && (
           <div style={{ display:"flex", flexDirection:"column", gap:16 }}>
             <div style={{ fontSize:16, fontWeight:700, padding:"4px 0" }}>📅 고사 일정</div>
+            <Card icon="🔎" title="이름으로 내 시험 찾기">
+              <input value={examSearch} onChange={e=>setExamSearch(e.target.value)} placeholder="이름 입력 (예: 홍길동)"
+                style={{ width:"100%", boxSizing:"border-box", padding:"12px 14px", border:"1px solid #ddd", borderRadius:12, fontFamily:"inherit", fontSize:15, outline:"none" }} />
+              {examSearch.trim() && (()=>{
+                const q = examSearch.trim();
+                const matched = students.filter(s => s.name.includes(q));
+                if (matched.length === 0) return <div style={{ padding:"12px 4px", color:"#888", fontSize:14 }}>일치하는 교육생이 없습니다.</div>;
+                return matched.map(s => {
+                  const my = exams.filter(e => getExamKeysFromName(e.name).some(k => s.classKeys.includes(k)))
+                    .sort((a,b) => new Date(a.date) - new Date(b.date));
+                  return (
+                    <div key={s.name} style={{ marginTop:12, padding:"12px 14px", border:"1px solid #eee", borderRadius:12, background:"#fafbff" }}>
+                      <div style={{ fontWeight:700, marginBottom:8 }}>{s.name} <span style={{ fontSize:12, color:"#999", fontWeight:400 }}>({s.classKeys.join(", ")}개강)</span></div>
+                      {my.length ? my.map(e => { const st = statusStyle[autoStatus(e)]; return (
+                        <div key={e.id} style={{ display:"flex", justifyContent:"space-between", gap:10, fontSize:13, padding:"4px 0", borderTop:"1px solid #f2f2f2" }}>
+                          <span>{e.name}</span>
+                          <span style={{ color:st.color, whiteSpace:"nowrap" }}>{e.date} ~ {e.endDate} <b>{st.label}</b></span>
+                        </div>
+                      ); }) : <div style={{ fontSize:12, color:"#888" }}>등록된 시험 없음</div>}
+                    </div>
+                  );
+                });
+              })()}
+            </Card>
             <Card icon="📅" title="캘린더">
               <Calendar students={students}/>
             </Card>
