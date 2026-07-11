@@ -495,7 +495,11 @@ function DesktopHeader({ page, setPage, isAdmin, onAdminTap }) {
 
 export default function App() {
   const isMobile = useIsMobile();
-  const [page, setPage] = useState("home");
+  // #exam / #notice 해시로 진입 시 해당 탭 바로 열기 (예: guzong.vercel.app/#exam → 이름 검색)
+  const [page, setPage] = useState(() => {
+    const h = window.location.hash.replace("#", "");
+    return ["home", "exam", "notice"].includes(h) ? h : "home";
+  });
   const [exams, setExams] = useState(initialExams);
   const [notices, setNotices] = useState(initialNotices);
   const [students, setStudents] = useState([]);
@@ -705,15 +709,23 @@ export default function App() {
                 return matched.map(s => {
                   const my = exams.filter(e => getExamKeysFromName(e.name).some(k => s.classKeys.includes(k)))
                     .sort((a,b) => new Date(a.date) - new Date(b.date));
+                  const myPractice = practicePeriods.filter(p => (p.attendees||[]).includes(s.name));
                   return (
                     <div key={s.name} style={{ marginTop:12, padding:"12px 14px", border:"1px solid #eee", borderRadius:12, background:"#fafbff" }}>
                       <div style={{ fontWeight:700, marginBottom:8 }}>{s.name} <span style={{ fontSize:12, color:"#999", fontWeight:400 }}>({s.classKeys.join(", ")}개강)</span></div>
-                      {my.length ? my.map(e => { const st = statusStyle[autoStatus(e)]; return (
+                      {my.map(e => { const st = statusStyle[autoStatus(e)]; return (
                         <div key={e.id} style={{ display:"flex", justifyContent:"space-between", gap:10, fontSize:13, padding:"4px 0", borderTop:"1px solid #f2f2f2" }}>
                           <span>{e.name}</span>
                           <span style={{ color:st.color, whiteSpace:"nowrap" }}>{e.date} ~ {e.endDate} <b>{st.label}</b></span>
                         </div>
-                      ); }) : <div style={{ fontSize:12, color:"#888" }}>등록된 시험 없음</div>}
+                      ); })}
+                      {myPractice.map((p,i) => (
+                        <div key={`p${i}`} style={{ display:"flex", justifyContent:"space-between", gap:10, fontSize:13, padding:"4px 0", borderTop:"1px solid #f2f2f2" }}>
+                          <span>🏫 {p.label}</span>
+                          <span style={{ color:"#0E7490", whiteSpace:"nowrap" }}>{p.start ? <>{p.start}{p.end && p.end!==p.start ? ` ~ ${p.end}` : ""}</> : <b>일정 미정</b>}</span>
+                        </div>
+                      ))}
+                      {my.length===0 && myPractice.length===0 && <div style={{ fontSize:12, color:"#888" }}>등록된 시험·실습 일정 없음</div>}
                     </div>
                   );
                 });
