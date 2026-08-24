@@ -24,6 +24,23 @@ function getExamKeysFromName(examName) {
   return match[1].split('·');
 }
 
+// 현장실습(출석수업) 개강반 — 온라인 중간/기말고사 미시행.
+// 공개시트 '실습개강일' 칸이 비어 있는 학생 보완용. 시트에 채우면 자동 반영됨.
+const PRACTICE_ONLY = {
+  "조소연": ["5/13"],
+  "이소희": ["7/15"],
+  "조현영": ["9/9"], "강봉구": ["9/9"], "송지현": ["9/9"],
+  "안재현": ["9/9"], "안경선": ["9/9"], "김태리": ["9/9"],
+};
+
+// 시험 대상자 = 개강반 키 매칭 − 그 개강반이 실습인 학생 제외
+function matchExamStudents(students, examName) {
+  const keys = getExamKeysFromName(examName);
+  return students.filter(st =>
+    st.classKeys.some(k => keys.includes(k) && !(st.practiceKeys || []).includes(k))
+  );
+}
+
 // 고사 종료/임박/예정 자동 판정 (종료일 < 오늘 → closed, 시작 14일 내 → soon, 그 외 → upcoming)
 function autoStatus(exam) {
   const today = new Date();
@@ -305,7 +322,7 @@ function Calendar({ students = [] }) {
             const isMidT = p.type==="mid", isFinalT = p.type==="final", isPracT = p.type==="practice";
             const matched = isPracT
               ? (p.attendees || []).map(name => ({ name }))
-              : students.filter(st => st.classKeys.some(k => getExamKeysFromName(p.label).includes(k)));
+              : matchExamStudents(students, p.label);
             const badge = isMidT
               ? { bg:"rgba(233,30,140,0.15)", color:"#E91E8C", label:"중간고사" }
               : isFinalT
@@ -362,8 +379,7 @@ const navBtnStyle = {
 function ExamItem({ exam, students = [] }) {
   const d = new Date(exam.date);
   const s = statusStyle[autoStatus(exam)];
-  const examKeys = getExamKeysFromName(exam.name);
-  const matched = students.filter(st => st.classKeys.some(k => examKeys.includes(k)));
+  const matched = matchExamStudents(students, exam.name);
   return (
     <div style={{ padding:"13px 0", borderBottom:"1px solid rgba(123,108,246,0.08)" }}>
       <div style={{ display:"flex", alignItems:"center", gap:12 }}>
@@ -539,12 +555,18 @@ export default function App() {
         const ganIdxs = headers
           .map((h, i) => (h === '개강반' || h.startsWith('개강반차수')) ? i : -1)
           .filter(i => i >= 0);
+        const silIdx = headers.findIndex(h => h === '실습개강일');
         const data = rows
           .map(cols => ({
             name: cols[0],
             classKeys: ganIdxs
               .map(i => dateToKey(cols[i] || ''))
               .filter(Boolean),
+            // 실습 개강반은 시험 대상에서 제외 (시트 '실습개강일' + 보완 맵)
+            practiceKeys: [
+              silIdx >= 0 ? dateToKey(cols[silIdx] || '') : '',
+              ...(PRACTICE_ONLY[cols[0]] || []),
+            ].filter(Boolean),
           }))
           .filter(s => s.name && s.classKeys.length > 0);
         setStudents(data);
