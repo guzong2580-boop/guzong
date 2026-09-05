@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>서울원격 시험일 조회</title>
+<style>
+  :root{--pink:#E91E8C;--bg:#fafafa;--card:#fff;--line:#eee;--mut:#888;}
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+  body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Apple SD Gothic Neo","Malgun Gothic",sans-serif;background:var(--bg);color:#222;padding:16px;}
+  .wrap{max-width:520px;margin:0 auto;}
+  h1{font-size:20px;margin:8px 0 4px;}
+  .sub{color:var(--mut);font-size:13px;margin-bottom:16px;}
+  .searchbox{display:flex;gap:8px;position:sticky;top:8px;}
+  input{flex:1;padding:14px 16px;font-size:17px;border:2px solid var(--pink);border-radius:12px;outline:none;}
+  button{padding:0 20px;font-size:16px;font-weight:700;color:#fff;background:var(--pink);border:none;border-radius:12px;}
+  .hint{color:var(--mut);font-size:12px;margin:10px 2px;}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px;margin-top:14px;box-shadow:0 1px 3px rgba(0,0,0,.04);}
+  .name{font-size:18px;font-weight:800;margin-bottom:10px;}
+  .row{display:flex;justify-content:space-between;padding:9px 0;border-top:1px dashed var(--line);font-size:15px;gap:8px;}
+  .row:first-of-type{border-top:none;}
+  .gang{color:var(--pink);font-weight:700;white-space:nowrap;}
+  .exam{text-align:right;}
+  .mid{color:#333;}.fin{color:#333;}
+  .tba{color:var(--mut);font-style:italic;}
+  .none{color:var(--mut);text-align:center;padding:24px;}
+  .foot{color:#bbb;font-size:11px;text-align:center;margin-top:24px;line-height:1.6;}
+  .tag{display:inline-block;font-size:11px;background:#fde;color:var(--pink);padding:2px 7px;border-radius:6px;margin-left:6px;}
+  .retry{color:var(--pink);font-weight:700;text-decoration:underline;cursor:pointer;}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>📘 서울원격 시험일 조회</h1>
+  <div class="sub">이름을 입력하면 개강반별 중간·기말고사 일정이 나옵니다.</div>
+  <form class="searchbox" onsubmit="run();return false;">
+    <input id="q" type="search" placeholder="이름 입력 (예: 김태리)" autocomplete="off">
+    <button type="submit">조회</button>
+  </form>
+  <div class="hint">※ 시험은 온라인, 17:00 마감. 실습 과목은 출석수업 별도(여기 안 나옴). 일정 미발표 개강일은 "미발표".</div>
+  <div id="out"></div>
+  <div class="foot">데이터: 교육원 공개 명단 시트 자동연동 · 개인정보(연락처·결제) 미포함<br>일정은 교육원 사정에 따라 변경될 수 있습니다.</div>
+</div>
+<script>
+const CSV="https://docs.google.com/spreadsheets/d/e/2PACX-1vR9J7MYIQb0uWQ16FLOsHy8ttEEeG8HPTIAxrSnilJPHYQH7yjxnRpr1uL1S8nJqc1qQDGB_A3isvu-/pub?output=csv";
+// 개강일(연도 포함) → [중간, 기말]. 새 개강반 시험 발표 시 여기에 추가 후 vercel --prod 재배포.
+const TABLE={
+ "2025-11/26":["1/16~1/20","3/6~3/10"],"2025-12/10":["1/30~2/3","3/20~3/24"],
+ "2026-1/14":["3/6~3/10","4/24~4/28"],"2026-2/11":["4/3~4/7","5/22~5/26"],
+ "2026-3/11":["5/1~5/5","6/19~6/23"],"2026-4/15":["6/5~6/9","7/24~7/28"],
+ "2026-5/13":["7/3~7/7","8/21~8/25"],"2026-5/20":["7/10~7/14","8/28~9/1"],
+ "2026-6/10":["7/31~8/4","9/18~9/22"],"2026-7/15":["9/4~9/8","10/23~10/27"],
+ "2026-8/12":["10/2~10/6","11/20~11/24"],
+ "2026-9/9":["10/30~11/3","12/18~12/22"]
+};
+// 현장실습 개강반 = 온라인 중간/기말 미시행. 시트 '실습개강일'이 비었을 때 보완용.
+const PRACTICE_ONLY={"조소연":["2026-5/13"],"이소희":["2026-7/15"],
+ "조현영":["2026-9/9"],"강봉구":["2026-9/9"],"송지현":["2026-9/9"],
+ "안재현":["2026-9/9"],"안경선":["2026-9/9"],"김태리":["2026-9/9"]};
+// 시험표 최초 개강일 이전 기수 = 시험 이미 종료된 지난 기수
+const MIN_NUM=Math.min(...Object.keys(TABLE).map(k=>{
+  const[y,md]=k.split("-");const[m,d]=md.split("/");return y*10000+m*100+ +d;}));
+const NOW_Y=new Date().getFullYear();
+let ROWS=null, HI=[], SI=-1, LOAD_ERR=false, LOADING=false;
+function esc(s){return String(s==null?"":s).replace(/[&<>"']/g,
+  c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));}
+function parseCSV(t){
+  const rows=[];let i=0,f="",row=[],q=false;
+  while(i<t.length){const c=t[i];
+    if(q){if(c=='"'){if(t[i+1]=='"'){f+='"';i++;}else q=false;}else f+=c;}
+    else{if(c=='"')q=true;else if(c==','){row.push(f);f="";}
+      else if(c=='\n'){row.push(f);rows.push(row);row=[];f="";}
+      else if(c=='\r'){}else f+=c;}
+    i++;}
+  if(f.length||row.length){row.push(f);rows.push(row);}
+  return rows;
+}
+function key(s){
+  const p=(s||"").trim().split(".").map(x=>x.trim());
+  if(p.length<3||!/^\d+$/.test(p[0])||!/^\d+$/.test(p[1])||!/^\d+$/.test(p[2]))return null;
+  const y=parseInt(p[0]),m=parseInt(p[1]),d=parseInt(p[2]);
+  return {y:y,m:m,d:d,num:y*10000+m*100+d,tk:y+"-"+m+"/"+d};
+}
+function mask(n){n=(n||"").trim();
+  if(n.length<=1)return n;
+  if(n.length==2)return n[0]+"*";
+  return n[0]+"*".repeat(n.length-2)+n[n.length-1];}
+function fetchTimeout(url,ms){
+  const ac=("AbortController" in window)?new AbortController():null;
+  const t=ac?setTimeout(()=>ac.abort(),ms):null;
+  return fetch(url,ac?{signal:ac.signal}:{}).finally(()=>{if(t)clearTimeout(t);});
+}
+async function load(){
+  if(LOADING)return;LOADING=true;LOAD_ERR=false;
+  for(let a=1;a<=3;a++){
+    try{
+      const r=await fetchTimeout(CSV,15000);
+      if(!r.ok)throw new Error("HTTP "+r.status);
+      const t=(await r.text()).replace(/^\uFEFF/,"");
+      const rows=parseCSV(t);
+      if(!rows.length||!rows[0].some(x=>(x||"").trim()=="이름"))throw new Error("bad data");
+      ROWS=rows;const h=ROWS[0];
+      HI=[];h.forEach((x,idx)=>{if(x.trim()=="개강반"||x.trim().startsWith("개강반차수"))HI.push(idx);});
+      SI=h.findIndex(x=>x.trim()=="실습개강일");
+      LOADING=false;return;
+    }catch(e){
+      if(a<3)await new Promise(res=>setTimeout(res,800*a));
+    }
+  }
+  ROWS=null;LOAD_ERR=true;LOADING=false;
+  document.getElementById("out").innerHTML=
+    '<div class="card none">명단을 불러오지 못했습니다.<br>인터넷 연결 확인 후 <span class="retry" onclick="retry()">다시 시도</span><br><span style="font-size:11px;color:#bbb">와이파이↔데이터 전환도 시도해보세요</span></div>';
+}
+function retry(){
+  document.getElementById("out").innerHTML='<div class="none">불러오는 중…</div>';
+  load().then(()=>{if(!LOAD_ERR)run();});
+}
+function run(){
+  const out=document.getElementById("out");
+  const name=document.getElementById("q").value.trim();
+  if(!name){if(!LOAD_ERR)out.innerHTML="";return;}
+  if(!ROWS){if(!LOAD_ERR)out.innerHTML='<div class="none">불러오는 중…</div>';return;}
+  const hits=ROWS.slice(1).filter(r=>r[0] && r[0].includes(name));
+  if(!hits.length){out.innerHTML='<div class="card none">"'+esc(name)+'" 명단에 없음.<br>이름 다시 확인해주세요.</div>';return;}
+  let html="";
+  hits.forEach(r=>{
+    const prac={};
+    (PRACTICE_ONLY[(r[0]||"").trim()]||[]).forEach(t=>prac[t]=1);
+    if(SI>=0){const pk=key(r[SI]);if(pk)prac[pk.tk]=1;}
+    const seen={},keys=[];
+    HI.forEach(i=>{const k=key(r[i]);if(k&&!seen[k.tk]){seen[k.tk]=1;keys.push(k);}});
+    keys.sort((a,b)=>a.num-b.num);
+    html+='<div class="card"><div class="name">'+esc(mask(r[0]))+'</div>';
+    if(!keys.length)html+='<div class="tba">개강반 정보 없음</div>';
+    keys.forEach(k=>{
+      const label=k.m+'/'+k.d+' 개강'+(k.y!=NOW_Y?'<span class="tag">'+k.y+'</span>':'');
+      if(prac[k.tk]){
+        html+='<div class="row"><span class="gang">'+label+'</span><span class="exam tba">현장실습반 · 중간/기말 없음<br>출석수업 별도</span></div>';
+      }else if(TABLE[k.tk]){
+        html+='<div class="row"><span class="gang">'+label+'</span><span class="exam"><span class="mid">중간 '+TABLE[k.tk][0]+'</span><br><span class="fin">기말 '+TABLE[k.tk][1]+'</span></span></div>';
+      }else if(k.num<MIN_NUM){
+        html+='<div class="row"><span class="gang">'+label+'</span><span class="exam tba">지난 기수 · 시험 종료</span></div>';
+      }else{
+        html+='<div class="row"><span class="gang">'+label+'</span><span class="exam tba">시험일 미발표</span></div>';
+      }
+    });
+    html+='</div>';
+  });
+  out.innerHTML=html;
+}
+document.getElementById("q").addEventListener("input",()=>{
+  if(ROWS)run();
+  else if(LOAD_ERR)retry(); // 실패 상태에서 입력 시 자동 재시도
+});
+load().then(()=>{const q=document.getElementById("q");if(q.value&&!LOAD_ERR)run();});
+</script>
+</body>
+</html>
